@@ -1,7 +1,15 @@
+/*
+/	Name :	Josue Herrera
+/			Kean Jafari
+/
+*/
+
+
 import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.zip.CRC32;
+import java.nio.*;
 
 
 public class Ex2Client{
@@ -11,7 +19,7 @@ public class Ex2Client{
 	}
 	public static void main(String[] args) throws Exception{
 		//Socket socket = new Socket("codebank.xyx", 38102);
-
+		int counter = 0;
 		try(Socket socket = new Socket("codebank.xyz", 38102)){
 			//Server Connected Message 
 			System.out.println("Connected to Server.");
@@ -25,25 +33,35 @@ public class Ex2Client{
 
 			//Creating Byte Array
 			byte[] buffer = new byte[100];
-			int firstByte, secondByte;
 			System.out.println("Received bytes: ");
-			
-			for(int i = 0; i < buffer.length; i++){
-				// Reading 4 bits at a time 
-				firstByte = is.read();
-				secondByte = is.read();
+			ByteBuffer bb = ByteBuffer.allocate(4);
+
+
+			for (int i = 0; i < 100; i++) {
 				
-				// Merge two 4 bits chunks into 8 bits
-				//``firstByte = (firstByte << 4)| secondByte ;
-				//firstByte = firstByte
-				
-				//adding bytes to buffer array 
-				buffer[i] = convert(firstByte,secondByte);
-				//print the bytes 
-				if (i % 10 == 0){
+				if (i % 10 == 0)
 					System.out.println();
-				}
-				System.out.print(buffer[i]);
+
+				// Read first byte
+				int firstRecByte = is.read();
+				int firstByte = firstRecByte*16;
+
+				// Read second byte
+				int secondRecByte = is.read();
+				int finalByte = firstByte + secondRecByte;
+				buffer[i] = (byte) finalByte;
+
+
+				// HEX to String, then changes to Uppercase
+				String strRepOne = Integer.toHexString(firstRecByte);
+				String strRepTwo = Integer.toHexString(secondRecByte);
+				strRepOne = strRepOne.toUpperCase();
+				strRepTwo = strRepTwo.toUpperCase();
+
+				// Printing the hex representation of the first and second 
+				// bytes individually
+				System.out.print(strRepOne + strRepTwo);
+
 			}
 
 
@@ -52,21 +70,24 @@ public class Ex2Client{
 			c.reset();
 			c.update(buffer, 0, 100);
 			long send = c.getValue();
-			System.out.println("\nGenerated CRC32: "+ send);
-			
+			String str = Long.toHexString(send);
+			str = str.toUpperCase();
+			System.out.println("\n\nGenerated CRC32: "+ str);
+
+
+			//Sending CRC
+			bb.putInt( (int) send);
+			byte[] crcToServer = bb.array();
+			out.write(crcToServer);
+
 
 			//CHECKING RESULT
-			//System.out.println(br.read());
 			int result = br.read();
 			if (result == 1){
 				System.out.println("Response Good.");
 			}else{
 				System.out.println("Response Bad.");
 			}
-		}
-
+		} catch (Exception e) { e.printStackTrace(System.out); }
 	}
-
-
-
 }
